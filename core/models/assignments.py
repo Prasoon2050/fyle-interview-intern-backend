@@ -1,4 +1,6 @@
 import enum
+
+from flask import jsonify, make_response
 from core import db
 from core.apis.decorators import AuthPrincipal
 from core.libs import helpers, assertions
@@ -66,7 +68,12 @@ class Assignment(db.Model):
         assertions.assert_valid(assignment.student_id == auth_principal.student_id, 'This assignment belongs to some other student')
         assertions.assert_valid(assignment.content is not None, 'assignment with empty content cannot be submitted')
 
+        if assignment.state == AssignmentStateEnum.SUBMITTED:
+            error_message = 'Only a draft assignment can be submitted'
+            return make_response(jsonify({'error': 'BadRequest', 'message': error_message}), 400)
+
         assignment.teacher_id = teacher_id
+        assignment.state = AssignmentStateEnum.SUBMITTED
         db.session.flush()
 
         return assignment
